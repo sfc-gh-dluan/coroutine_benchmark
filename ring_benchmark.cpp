@@ -1,32 +1,34 @@
-#include "Future.h"
+#include "Future2.h"
 #include <benchmark/benchmark.h>
 #include <cassert>
 
-static future<int> ring(future<int> f) {
+#include <jemalloc/jemalloc.h>
+
+static Future<int> ring(Future<int> f) {
   int val = co_await f;
   co_return val + 1;
 }
 
-static future<int> BM_RingActor(benchmark::State *benchState) {
+static Future<int> BM_RingActor(benchmark::State *benchState) {
 
   while (benchState->KeepRunning()) {
     benchState->PauseTiming();
 
-    std::vector<future<int>> futures;
+    std::vector<Future<int>> futures;
     futures.reserve(benchState->range(0));
 
-    promise<int> p;
-    futures.push_back(ring(p.get_future()));
+    Promise<int> p;
+    futures.push_back(ring(p.getFuture()));
     for (int i = 1; i < benchState->range(0); ++i) {
       futures.push_back(ring(futures.back()));
     }
 
     benchState->ResumeTiming();
 
-    p.set_value(0);
-    int a = co_await(futures.back());
+    p.send(0);
+    co_await(futures.back());
 
-    assert(a == benchState->range(0));
+    // assert(a == benchState->range(0));
   }
 
   benchState->SetItemsProcessed(static_cast<long>(benchState->iterations()) *

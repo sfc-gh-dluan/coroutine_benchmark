@@ -11,8 +11,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_CXX_FLAGS "-stdlib=libc++ -fcoroutines-ts -O3")
 
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+set(USE_JEMALLOC ON)
+include(Jemalloc)
+
 # Find google benchmark library
 find_package(benchmark REQUIRED)
 
 add_executable(RingBenchmark ring_benchmark.cpp)
-target_link_libraries(RingBenchmark benchmark::benchmark)
+target_link_libraries(RingBenchmark benchmark::benchmark jemalloc)
