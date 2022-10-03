@@ -57,23 +57,6 @@ public:
     // }
 
     fireCallbacks();
-
-    // Fire callbacks
-  }
-
-  template <class U> void set(U &&value) {
-    ASSERT(canBeSet());
-    new (&value_storage) T(std::forward<U>(value));
-    this->state = SET;
-
-    // std::cout << "value set" << std::endl;
-    // while (Callback<T>::next != this) {
-    //   Callback<T>::next->fire(this->value());
-    // }
-
-    // fireCallbacks();
-
-    // Fire callbacks
   }
 
   // void sendError(Error err) {
@@ -89,8 +72,6 @@ public:
   }
 
   void fireCallbacks() {
-    // std::cerr << "callbacks fire" << std::endl;
-
     for (auto h : handles) {
       h.resume();
     }
@@ -104,8 +85,6 @@ public:
       if (futures && canBeSet()) {
         // TODO:
         // sendError(broken_promise());
-
-        std::cerr << "broken promise" << std::endl;
 
         ASSERT(promises ==
                1); // Once there is only one promise, there is no one else with
@@ -135,6 +114,7 @@ public:
   }
 
   virtual void cancel() {
+    // TODO:
     // std::cerr << "cancel()" << std::endl;
   }
 
@@ -155,6 +135,7 @@ public:
   // returns true if get can be called on this future (counterpart of canBeSet
   // on Promises)
   bool canGet() const { return isValid() && isReady() && !isError(); }
+
   // Error &getError() const {
   //   ASSERT(isError());
   //   return sav->error_state;
@@ -178,6 +159,8 @@ public:
   Future(T &&presentValue) : sav(new SAV<T>(1, 0)) {
     sav->send(std::move(presentValue));
   }
+
+  // TODO:
   // Future(Never) : sav(new SAV<T>(1, 0)) { sav->send(Never()); }
   // Future(const Error &error) : sav(new SAV<T>(1, 0)) { sav->sendError(error);
   // }
@@ -251,37 +234,24 @@ public:
 
     std::experimental::suspend_never initial_suspend() { return {}; }
 
-    std::experimental::suspend_never final_suspend() noexcept {
-      // std::cout << "Final suspend" << std::endl;
-      p.fireCallbacks(); 
-      return {};
-    }
+    std::experimental::suspend_never final_suspend() noexcept { return {}; }
 
     void unhandled_exception() {
       // TODO:
       // p.sendError
     }
 
-    // void return_void() {}
-    // ---- OR ----
-    // void return_value(T value) { p.send(value); }
-
     template <class U> void return_value(U &&value) const {
-      // std::cout << "value set" << std::endl;
-      p.set(std::forward<U>(value));
-      // p.send(std::forward<U>(value));
+      p.send(std::forward<U>(value));
     }
   };
 
   bool await_ready() noexcept { return canGet(); }
 
   void await_suspend(n_coro::coroutine_handle<> handle) {
-    // state->await_suspend(handle);
-
     sav->add_callback(handle);
   }
 
-  // T await_resume() noexcept { return  }
   T const &await_resume() const { return sav->get(); }
 
 private:
@@ -292,10 +262,6 @@ template <class T> class Promise final {
 public:
   template <class U> void send(U &&value) const {
     sav->send(std::forward<U>(value));
-  }
-
-  template <class U> void set(U &&value) const {
-    sav->set(std::forward<U>(value));
   }
 
   void fireCallbacks() { sav->fireCallbacks(); }

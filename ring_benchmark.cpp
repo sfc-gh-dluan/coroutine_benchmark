@@ -2,8 +2,6 @@
 #include <benchmark/benchmark.h>
 #include <cassert>
 
-#include <jemalloc/jemalloc.h>
-
 static Future<int> ring(Future<int> f) {
   int val = co_await f;
   co_return val + 1;
